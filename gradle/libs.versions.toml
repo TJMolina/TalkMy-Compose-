@@ -30,6 +30,7 @@ mlkitTranslate = "17.0.3"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
+logger = "2.2.0"
 
 [libraries]
 # AndroidX & Lifecycle
@@ -72,6 +73,7 @@ mlkit-translate = { group = "com.google.mlkit", name = "translate", version.ref 
 # Utils
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIoCore" }
+logger = { group = "com.orhanobut", name = "logger", version.ref = "logger"}
 
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }

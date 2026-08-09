@@ -77,6 +77,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.io.core)
+    implementation(libs.logger)
+
 
     // Test
     testImplementation(libs.junit)

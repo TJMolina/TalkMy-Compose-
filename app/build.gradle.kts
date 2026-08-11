@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -78,11 +79,18 @@ dependencies {
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.io.core)
     implementation(libs.logger)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
 
     // Test
     testImplementation(libs.junit)
+    testImplementation(libs.mock)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.core.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.mock.android)
     debugImplementation(libs.compose.ui.tooling)
+
 }

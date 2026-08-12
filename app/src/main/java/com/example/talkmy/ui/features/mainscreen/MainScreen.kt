@@ -11,7 +11,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,17 +22,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talkmy.R
+import com.example.talkmy.domain.models.Task
+import com.example.talkmy.ui.components.TopBar
 import com.example.talkmy.ui.features.mainscreen.components.FloatingButton
 import com.example.talkmy.ui.features.mainscreen.components.TaskCard
-import com.example.talkmy.ui.components.TopBar
 import com.example.talkmy.ui.theme.TalkMyTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun MainScreen(
     onAddTask: () -> Unit,
-    onEditTask: (Int) -> Unit
+    onEditTask: (Int) -> Unit,
+    viewModel: MainViewModel = hiltViewModel()
 ) {
+    val tasks by viewModel.tasks.collectAsState()
     var menuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -41,7 +50,7 @@ fun MainScreen(
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Menú",
+                            contentDescription = "Menu",
                             tint = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -50,8 +59,11 @@ fun MainScreen(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { },
-                            onClick = { menuExpanded = false }
+                            text = { Text("Clear All") },
+                            onClick = { 
+                                // viewModel.clearTasks()
+                                menuExpanded = false 
+                            }
                         )
                     }
                 }
@@ -61,7 +73,9 @@ fun MainScreen(
     ) {
         innerPadding ->
         MainScreenContent(
+            tasks = tasks,
             onEditTask = onEditTask,
+            onDeleteTask = { viewModel.deleteTask(it) },
             modifier = Modifier.padding(innerPadding.plus(PaddingValues(vertical = 2.dp)))
         )
     }
@@ -69,17 +83,23 @@ fun MainScreen(
 
 @Composable
 fun MainScreenContent(
+    tasks: List<Task>,
     onEditTask: (Int) -> Unit,
+    onDeleteTask: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dateFormat = remember { SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.getDefault()) }
+
     LazyColumn(modifier = modifier) {
-        item {
+        items(tasks.size) { index ->
+            val task = tasks[index]
+            val dateString = remember(task.date) { dateFormat.format(Date(task.date)) }
             TaskCard(
-                title = "Mi Tarea Importante",
-                description = "Esta es una descripción larga para probar cómo se comporta el texto cuando tiene varias líneas y debe cortarse con puntos suspensivos.",
-                date = "1s",
-                onCardClick = { onEditTask(1) },
-                onDeleteClick = {}
+                title = "Note ${index + 1}",
+                description = task.note,
+                date = dateString,
+                onCardClick = { onEditTask(task.id) },
+                onDeleteClick = { onDeleteTask(task.id) }
             )
         }
     }

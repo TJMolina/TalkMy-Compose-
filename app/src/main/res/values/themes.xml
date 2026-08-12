@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.TalkMy" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.TalkMy" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="white">@color/white</item>
+        <item name="primaryBlackBackground">@color/black</item>
+    </style>
 </resources>

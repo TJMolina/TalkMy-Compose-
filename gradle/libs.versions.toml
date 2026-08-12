@@ -14,7 +14,8 @@ navigationCompose = "2.9.8"
 uiText = "1.11.4"
 room = "2.8.4"
 work = "2.11.2"
-preference = "2.2.0"
+preference = "1.2.1"
+compose-preference = "2.2.0"
 
 # Scraping & Network
 jsoup = "1.18.1"
@@ -29,6 +30,10 @@ fuzzywuzzy = "1.4.0"
 mlkitTranslate = "17.0.3"
 logger = "2.2.0"
 hilt = "2.60.1"
+hiltNavigationCompose = "1.2.0"
+commons-text = "1.15.0"
+jackson = "2.17.2"
+okhttpLogging = "4.12.0"
 
 #testing
 junit = "4.13.2"
@@ -73,7 +78,8 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
 markwon-html = { group = "io.noties.markwon", name = "html", version.ref = "markwon" }
 fuzzywuzzy = { group = "me.xdrop", name = "fuzzywuzzy", version.ref = "fuzzywuzzy" }
-compose-preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "preference" }
+compose-preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "compose-preference" }
+androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preference" }
 mlkit-translate = { group = "com.google.mlkit", name = "translate", version.ref = "mlkitTranslate" }
 
 # Utils
@@ -82,6 +88,11 @@ kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.re
 logger = { group = "com.orhanobut", name = "logger", version.ref = "logger"}
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+commons-text = { group = "org.apache.commons", name = "commons-text", version.ref = "commons-text" }
+jacksonDatabind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+jacksonModuleKotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttpLogging" }
 
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }

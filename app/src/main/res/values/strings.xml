@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">TalkMy!</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="info">Information</string>
+    <string name="type_none">None</string>
 </resources>

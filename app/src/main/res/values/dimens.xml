@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="roundedImageRadius">8dp</dimen>
+    <dimen name="rounded_button_radius">4dp</dimen>
+    <dimen name="roundedTextBorderWidth">1dp</dimen>
+    <dimen name="roundedTextBorderRadius">4dp</dimen>
+</resources>

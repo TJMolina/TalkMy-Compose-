@@ -5,15 +5,21 @@ import android.content.Context
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.lang.ref.WeakReference
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object WebViewManager {
-    private var webView: WeakReference<WebView>? = null
+@Singleton
+class WebViewManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    private var webViewRef: WeakReference<WebView>? = null
 
     @SuppressLint("SetJavaScriptEnabled")
-    fun preload(context: Context) {
-        if (webView == null) {
-            webView = WeakReference(WebView(context.applicationContext).apply {
+    fun preload() {
+        if (webViewRef?.get() == null) {
+            webViewRef = WeakReference(WebView(context).apply {
                 settings.javaScriptEnabled = true
                 webViewClient = WebViewClient()
                 loadUrl("https://www.google.com")
@@ -21,14 +27,13 @@ object WebViewManager {
         }
     }
 
-    fun getWebView(context: Context): WebView {
-        if (webView == null) {
-            preload(context)
+    fun getWebView(requestContext: Context): WebView {
+        var instance = webViewRef?.get()
+        if (instance == null) {
+            preload()
+            instance = webViewRef?.get()!!
         }
-        
-        val instance = webView?.get()!!
-        
-        // Es vital remover el WebView de cualquier padre anterior antes de reusarlo
+
         (instance.parent as? ViewGroup)?.removeView(instance)
         
         return instance

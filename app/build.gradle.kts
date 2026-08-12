@@ -74,12 +74,18 @@ dependencies {
     implementation(libs.markwon.html)
     implementation(libs.fuzzywuzzy)
     implementation(libs.compose.preference)
+    implementation(libs.androidx.preference.ktx)
     implementation(libs.mlkit.translate)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.io.core)
     implementation(libs.logger)
     implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.commons.text)
+    implementation(libs.jacksonDatabind)
+    implementation(libs.jacksonModuleKotlin)
+    implementation(libs.okhttp.logging)
     ksp(libs.hilt.compiler)
 
 

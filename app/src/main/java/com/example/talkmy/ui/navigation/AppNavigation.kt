@@ -6,11 +6,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.talkmy.ui.components.WebViewManager
 import com.example.talkmy.ui.features.edittask.EditTaskScreen
 import com.example.talkmy.ui.features.mainscreen.MainScreen
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(webViewManager: WebViewManager) {
     val navController = rememberNavController()
 
     NavHost(
@@ -42,6 +43,7 @@ fun AppNavigation() {
             
             EditTaskScreen(
                 taskId = taskId,
+                webViewManager = webViewManager,
                 onBackClick = {
                     navController.popBackStack()
                 }

@@ -6,52 +6,96 @@ import com.example.talkmy.core.ResponseState
 import com.example.talkmy.domain.interfaces.TTSManagerInterface
 import com.example.talkmy.domain.models.Task
 import com.example.talkmy.domain.usecases.EditTaskScreenTasksUseCases
+import com.example.talkmy.ui.core.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class EditTaskState(
+    val contentLoadingStatus: ResponseState<String>? = null,
+    val currentTextOnTextField: String = "",
+    val isPlaying: Boolean = false,
+    val progress: Float = 0f
+)
+
+sealed class EditTaskAction {
+    data class LoadTask(val id: String?) : EditTaskAction()
+    data class SaveTask(val noteText: String) : EditTaskAction()
+    data class FetchTextFromUrl(val url: String) : EditTaskAction()
+    data class UpdateNoteText(val text: String) : EditTaskAction()
+    object ToggleVoice : EditTaskAction()
+    object StopVoice : EditTaskAction()
+}
+
+sealed class EditTaskEffect {
+    object NavigateBack : EditTaskEffect()
+    data class ShowMessage(val message: String) : EditTaskEffect()
+}
 
 @HiltViewModel
 class EditTaskViewModel @Inject constructor(
     private val useCases: EditTaskScreenTasksUseCases,
     private val ttsManager: TTSManagerInterface
-) : ViewModel() {
+) : ViewModel(),
+    ActionHandler<EditTaskAction>,
+    StateContainer<EditTaskState> by DefaultStateContainer(EditTaskState()),
+    EffectContainer<EditTaskEffect> by DefaultEffectContainer() {
 
-    private val _task = MutableStateFlow<Task?>(null)
-    val task: StateFlow<Task?> = _task.asStateFlow()
+    private val fetchQuery = SingleActiveQuery()
+    private var task: Task? = null
+    override fun onAction(action: EditTaskAction) {
+        when (action) {
+            is EditTaskAction.LoadTask -> loadTask(action.id)
+            is EditTaskAction.SaveTask -> saveTask(action.noteText)
+            is EditTaskAction.FetchTextFromUrl -> fetchTextFromUrl(action.url)
+            is EditTaskAction.UpdateNoteText -> updateState { copy(currentTextOnTextField = action.text) }
+            EditTaskAction.ToggleVoice -> toggleVoice()
+            EditTaskAction.StopVoice -> stopVoice()
+        }
+    }
 
-    private val _urlTextState = MutableStateFlow<ResponseState<String>>(ResponseState.Loading())
-    val urlTextState: StateFlow<ResponseState<String>> = _urlTextState.asStateFlow()
-
-    fun loadTask(id: String?) {
+    private fun loadTask(id: String?) {
         val taskId = id?.toIntOrNull() ?: return
         viewModelScope.launch {
-            _task.value = useCases.getTask(taskId)
+            val loadedTask = useCases.getTask(taskId)
+            task = loadedTask
+            updateState { copy(currentTextOnTextField = loadedTask?.note ?: "") }
         }
     }
 
-    fun saveTask(noteText: String) {
+    private fun saveTask(noteText: String) {
         viewModelScope.launch {
-            val currentTask = _task.value?.copy(note = noteText) ?: Task(note = noteText)
+            val currentTask = task?.copy(note = noteText) ?: Task(note = noteText)
             useCases.uploadTask(currentTask)
+            postEffect { EditTaskEffect.NavigateBack }
         }
     }
 
-    fun fetchTextFromUrl(url: String) {
+    private fun fetchTextFromUrl(url: String) {
         viewModelScope.launch {
-            useCases.getTextFromUrl(url).collect {
-                _urlTextState.value = it
+            fetchQuery.launch {
+                useCases.getTextFromUrl(url).collect { res ->
+                    updateState { copy(contentLoadingStatus = res) }
+                    if (res is ResponseState.Success) {
+                        updateState { copy(currentTextOnTextField = res.data ?: "") }
+                    }
+                }
             }
         }
     }
 
-    fun speak(text: String) {
-        ttsManager.speak(text)
+    private fun toggleVoice() {
+        val isPlaying = !state.value.isPlaying
+        updateState { copy(isPlaying = isPlaying) }
+        if (isPlaying) {
+            ttsManager.speak(state.value.currentTextOnTextField)
+        } else {
+            ttsManager.stop()
+        }
     }
 
-    fun stopSpeaking() {
+    private fun stopVoice() {
+        updateState { copy(isPlaying = false) }
         ttsManager.stop()
     }
 

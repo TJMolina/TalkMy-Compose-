@@ -11,8 +11,13 @@ class TasksOnlineRepositoryImpl @Inject constructor(
         return try {
             val response = requests.get(url)
             if (response.isSuccessful) {
-                response.document.body().html()
+                val html = response.document.body().apply {
+                    select("script, style, noscript, iframe, nav, footer, header").remove()
+                }.html()
+                response.okhttpResponse.close()
+                html
             } else {
+                response.okhttpResponse.close()
                 null
             }
         } catch (e: Exception) {

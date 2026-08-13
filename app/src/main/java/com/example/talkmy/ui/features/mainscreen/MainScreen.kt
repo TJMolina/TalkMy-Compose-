@@ -6,32 +6,19 @@ import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talkmy.R
-import com.example.talkmy.domain.models.Task
+import com.example.talkmy.core.extensions.toRelativeTime
 import com.example.talkmy.ui.components.TopBar
 import com.example.talkmy.ui.features.mainscreen.components.FloatingButton
 import com.example.talkmy.ui.features.mainscreen.components.TaskCard
 import com.example.talkmy.ui.theme.TalkMyTheme
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun MainScreen(
@@ -39,7 +26,7 @@ fun MainScreen(
     onEditTask: (Int) -> Unit,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    val tasks by viewModel.tasks.collectAsState()
+    val state by viewModel.state.collectAsState()
     var menuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -51,7 +38,7 @@ fun MainScreen(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Menu",
-                            tint = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     DropdownMenu(
@@ -61,7 +48,7 @@ fun MainScreen(
                         DropdownMenuItem(
                             text = { Text("Clear All") },
                             onClick = { 
-                                // viewModel.clearTasks()
+                                viewModel.onAction(MainAction.ClearAll)
                                 menuExpanded = false 
                             }
                         )
@@ -70,12 +57,11 @@ fun MainScreen(
             )
         },
         floatingActionButton = { FloatingButton(onClick = onAddTask) }
-    ) {
-        innerPadding ->
+    ) { innerPadding ->
         MainScreenContent(
-            tasks = tasks,
+            state = state,
             onEditTask = onEditTask,
-            onDeleteTask = { viewModel.deleteTask(it) },
+            onDeleteTask = { viewModel.onAction(MainAction.DeleteTask(it)) },
             modifier = Modifier.padding(innerPadding.plus(PaddingValues(vertical = 2.dp)))
         )
     }
@@ -83,20 +69,18 @@ fun MainScreen(
 
 @Composable
 fun MainScreenContent(
-    tasks: List<Task>,
+    state: MainState,
     onEditTask: (Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dateFormat = remember { SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.getDefault()) }
-
     LazyColumn(modifier = modifier) {
-        items(tasks.size) { index ->
-            val task = tasks[index]
-            val dateString = remember(task.date) { dateFormat.format(Date(task.date)) }
+        items(state.tasks.size) { index ->
+            val task = state.tasks[index]
+            val dateString = remember(task.date) { task.date.toRelativeTime() }
             TaskCard(
                 title = "Note ${index + 1}",
-                description = task.note,
+                description = task.note.take(500),
                 date = dateString,
                 onCardClick = { onEditTask(task.id) },
                 onDeleteClick = { onDeleteTask(task.id) }
@@ -107,8 +91,8 @@ fun MainScreenContent(
 
 @Preview
 @Composable
-fun prev(){
-    TalkMyTheme{
+fun prev() {
+    TalkMyTheme {
         MainScreen(
             onAddTask = {},
             onEditTask = {}

@@ -2,13 +2,26 @@ package com.example.talkmy.data.network
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.webkit.*
+import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.example.talkmy.data.network.utils.CookiesUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Interceptor
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.ByteArrayInputStream
 import java.net.URI
@@ -170,7 +183,7 @@ class WebViewResolver @Inject constructor(
                         if (scriptToFinish == null) {
                             @OptIn(DelicateCoroutinesApi::class)
                             GlobalScope.launch(Dispatchers.Main) {
-                                delay(2000L)
+                                delay(2.seconds)
                                 if (requestCallBack(Request.Builder().url(finishUrl).build())) {
                                     deferredResponse.complete(fixedRequest to extraRequestList)
                                 }
@@ -219,9 +232,15 @@ class WebViewResolver @Inject constructor(
 }
 
 fun WebResourceRequest.toRequest(): Request {
+    val method = this.method
+    val body = if (method == "POST" || method == "PUT" || method == "PATCH") {
+        "".toRequestBody()
+    } else {
+        null
+    }
     return Request.Builder()
         .url(this.url.toString())
-        .method(this.method, null)
+        .method(method, body)
         .headers(this.requestHeaders.toHeaders())
         .build()
 }

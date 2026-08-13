@@ -11,11 +11,11 @@ import javax.inject.Inject
 class GetTextFromUrl @Inject constructor(
     private val tasksOnlineRepository: TasksOnlineRepository
 ) {
-    suspend operator fun invoke(url: String): Flow<ResponseState<String>> = flow {
+    operator fun invoke(url: String): Flow<ResponseState<String>> = flow {
         emit(ResponseState.Loading())
         val textHTML = tasksOnlineRepository.getTextFromUrls(url)
         if (!textHTML.isNullOrEmpty()) {
-            emit(ResponseState.Success(textHTML.translateHTMLtoPlain().separateSentencesInsertPTagWeb()))
+            emit(ResponseState.Success(textHTML.translateHTMLtoPlain()/*.separateSentencesInsertPTagWeb()*/))
         } else {
             emit(ResponseState.Error("Error receiving text."))
         }

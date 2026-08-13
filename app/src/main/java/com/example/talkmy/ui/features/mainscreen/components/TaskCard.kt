@@ -138,7 +138,7 @@ fun TaskCardPreview() {
         TaskCard(
             title = "Mi Tarea Importante",
             description = "Esta es una descripción larga para probar cómo se comporta el texto cuando tiene varias líneas y debe cortarse con puntos suspensivos.",
-            date = "1s",
+            date = "3h",
             onCardClick = {},
             onDeleteClick = {}
         )

@@ -4,4 +4,8 @@
     <string name="cancel">Cancel</string>
     <string name="info">Information</string>
     <string name="type_none">None</string>
+    <string name="dialog_url_title">Enter URL</string>
+    <string name="dialog_url_placeholder">https://example.com</string>
+    <string name="dialog_url_confirm">Get Text</string>
+    <string name="close">Close</string>
 </resources>

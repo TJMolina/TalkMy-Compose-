@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             TalkMyTheme {
-                AppNavigation(webViewManager = webViewManager)
+                AppNavigation()
             }
         }
     }
@@ -40,6 +40,6 @@ class MainActivity : ComponentActivity() {
 fun GreetingPreview() {
     TalkMyTheme {
         // Preview can't easily inject, so we pass null or a mock if we want
-        AppNavigation(webViewManager = WebViewManager(LocalContext.current))
+        AppNavigation()
     }
 }

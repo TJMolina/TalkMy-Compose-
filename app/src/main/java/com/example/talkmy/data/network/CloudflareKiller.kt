@@ -73,8 +73,11 @@ class CloudflareKiller @Inject constructor(
             val bypassResponse = bypassCloudflare(request)
 
             if (bypassResponse != null) {
-                Log.d(TAG, "Succeeded bypassing cloudflare: ${request.url}")
-                return@runBlocking bypassResponse
+                if (!looksLikeCloudflareChallenge(bypassResponse)) {
+                    Log.d(TAG, "Succeeded bypassing cloudflare: ${request.url}")
+                    return@runBlocking bypassResponse
+                }
+                bypassResponse.close()
             }
         }
 

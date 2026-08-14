@@ -4,8 +4,37 @@
     <string name="cancel">Cancel</string>
     <string name="info">Information</string>
     <string name="type_none">None</string>
+
+    <!-- URL Dialog -->
     <string name="dialog_url_title">Enter URL</string>
     <string name="dialog_url_placeholder">https://example.com</string>
     <string name="dialog_url_confirm">Get Text</string>
     <string name="close">Close</string>
+
+    <!-- Main Screen -->
+    <string name="clear_all">Clear All</string>
+    <string name="note_title_format">Note %1$d</string>
+    <string name="delete_note">Delete note</string>
+    <string name="menu">Menu</string>
+
+    <!-- Edit Task Screen -->
+    <string name="create_note">Create Note</string>
+    <string name="edit_note">Edit Note</string>
+    <string name="paste_link">Paste Link</string>
+    <string name="save">Save</string>
+    <string name="write_note_placeholder">Write your note here&#8230;</string>
+
+    <!-- Menu Options -->
+    <string name="menu_text">Text</string>
+    <string name="menu_voice_options">Voice options</string>
+    <string name="menu_voice_settings">Volume, pitch, speed</string>
+    <string name="menu_voice_selector">Voice</string>
+    <string name="settings">Settings</string>
+
+    <!-- Common Components -->
+    <string name="back">Back</string>
+    <string name="add">Add</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="delete">Delete</string>
 </resources>

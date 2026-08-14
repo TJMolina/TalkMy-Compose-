@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,9 +39,9 @@ fun EditTaskScreen(
     viewModel: EditTaskViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    var menuExpanded by remember { mutableStateOf(false) }
+    var mainMenuExpanded by remember { mutableStateOf(false) }
+    var voiceMenuExpanded by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
-
     val textFieldState = rememberTextFieldState(state.currentTextOnTextField)
 
     LaunchedEffect(taskId) {
@@ -90,13 +91,13 @@ fun EditTaskScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopBar(
-                title = if (taskId == null) "Create Note" else "Edit Note",
+                title = if (taskId == null) stringResource(R.string.create_note) else stringResource(R.string.edit_note),
                 onBackClick = onBackClick,
                 actions = {
                     IconButton(onClick = { showUrlDialog = true }) {
                         Icon(
-                            imageVector = Icons.Default.CloudQueue,
-                            contentDescription = "Paste Link",
+                            painter = painterResource(R.drawable.ic_baseline_link),
+                            contentDescription = stringResource(R.string.paste_link),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -105,24 +106,44 @@ fun EditTaskScreen(
                     }) {
                         Icon(
                             imageVector = Icons.Default.Save,
-                            contentDescription = "Save",
+                            contentDescription = stringResource(R.string.save),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                    IconButton(onClick = { menuExpanded = true }) {
+                    IconButton(onClick = { mainMenuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Menu",
+                            contentDescription = stringResource(R.string.menu),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
+                        expanded = mainMenuExpanded,
+                        onDismissRequest = { mainMenuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = { menuExpanded = false }
+                            text = { Text(stringResource(R.string.menu_text)) },
+                            onClick = { mainMenuExpanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_voice_options)) },
+                            onClick = {
+                                mainMenuExpanded = false
+                                voiceMenuExpanded = true
+                            }
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = voiceMenuExpanded,
+                        onDismissRequest = { voiceMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_voice_settings)) },
+                            onClick = { voiceMenuExpanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_voice_selector)) },
+                            onClick = { voiceMenuExpanded = false }
                         )
                     }
                 }
@@ -157,7 +178,7 @@ fun EditTaskScreen(
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 if (textFieldState.text.isEmpty()) {
                                     Text(
-                                        text = "Write your note here...",
+                                        text = stringResource(R.string.write_note_placeholder),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                     )
                                 }
@@ -202,7 +223,7 @@ fun EditTaskScreen(
                 ) {
                     Icon(
                         imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pause" else "Play",
+                        contentDescription = if (state.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                         modifier = Modifier.size(40.dp)
                     )
                 }

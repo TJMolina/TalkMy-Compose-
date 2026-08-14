@@ -37,7 +37,7 @@ fun MainScreen(
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Menu",
+                            contentDescription = stringResource(R.string.menu),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -46,7 +46,7 @@ fun MainScreen(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Clear All") },
+                            text = { Text(stringResource(R.string.clear_all)) },
                             onClick = { 
                                 viewModel.onAction(MainAction.ClearAll)
                                 menuExpanded = false 
@@ -79,7 +79,7 @@ fun MainScreenContent(
             val task = state.tasks[index]
             val dateString = remember(task.date) { task.date.toRelativeTime() }
             TaskCard(
-                title = "Note ${index + 1}",
+                title = stringResource(R.string.note_title_format, index + 1),
                 description = task.note.take(500),
                 date = dateString,
                 onCardClick = { onEditTask(task.id) },

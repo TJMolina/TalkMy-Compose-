@@ -8,12 +8,11 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import com.example.talkmy.data.network.utils.CookiesUtils
+import com.lagradost.nicehttp.requestCreator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -21,7 +20,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Interceptor
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.ByteArrayInputStream
 import java.net.URI
@@ -50,6 +48,7 @@ class WebViewResolver @Inject constructor(
         "fundingchoicesmessages.google.com"
     )
 
+    /** Common binary/asset extensions to block in the WebView to save bandwidth and speed up bypass. */
     private val blacklistedExtensions = setOf(
         "jpg", "png", "webp", "mpg", "mpeg", "jpeg", "webm",
         "mp4", "mp3", "gifv", "flv", "asf", "mov", "mng",
@@ -58,11 +57,15 @@ class WebViewResolver @Inject constructor(
     )
 
     companion object {
+        /** Cache for the system WebView's default User-Agent. */
         var webViewUserAgent: String? = null
+        /** Global map to store high-fidelity headers (like sec-ch-ua) captured from the WebView. */
         val capturedHeaders = ConcurrentHashMap<String, Map<String, String>>()
+        /** Regex to parse Content-Type and Charset from HTTP headers. */
         val CONTENT_TYPE_REGEX = Regex("""(.*);(?:.*charset=(.*)(?:|;)|)""")
     }
 
+    /** Utility to check if a URL belongs to a blocked tracker host. */
     private fun isBlockedTrackerUrl(url: String): Boolean {
         val host = runCatching { URI(url).host?.lowercase() }.getOrNull() ?: return false
         return blockedTrackerHosts.any { blocked ->
@@ -70,6 +73,7 @@ class WebViewResolver @Inject constructor(
         }
     }
 
+    /** Lazily retrieves and caches the default User-Agent from a dummy WebView. */
     suspend fun getWebViewUserAgent(): String? {
         return webViewUserAgent ?: withContext(Dispatchers.Main) {
             WebView(context).settings.userAgentString.also { userAgent ->
@@ -78,65 +82,81 @@ class WebViewResolver @Inject constructor(
         }
     }
 
+    /**
+     * Standard OkHttp Interceptor implementation.
+     * When a request is intercepted, it tries to "resolve" it using the hidden WebView.
+     */
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         return runBlocking {
-            val result = resolveUsingWebView(request)
-            val fixedRequest = result.first as? Request
+            // resolveUsingWebView returns the final request after the bypass
+            val fixedRequest = resolveUsingWebView(request).first as? Request
             return@runBlocking chain.proceed(fixedRequest ?: request)
         }
     }
 
+    /**
+     * Resolves the Cloudflare challenge and optionally extracts content.
+     * @param requestCallBack asynchronously return matched requests by either interceptUrl or additionalUrls. If true, destroy WebView.
+     * @return the final request (by interceptUrl) and all the collected urls (by additionalUrls), or the extracted script String.
+     * */
     @SuppressLint("SetJavaScriptEnabled")
     suspend fun resolveUsingWebView(
         request: Request,
         interceptUrl: Regex? = null,
         additionalUrls: List<Regex> = emptyList(),
         userAgent: String? = null,
-        useOkhttp: Boolean = false,
         scriptToFinish: String? = null,
         requestCallBack: (Request) -> Boolean = { false }
     ): Pair<Any?, List<Request>> {
         val url = request.url.toString()
         val headers = request.headers
-        
+
+        // We use a Deferred to wait for the WebView to signal completion (success or timeout)
         val deferredResponse = CompletableDeferred<Pair<Any?, List<Request>>>()
         val extraRequestList = mutableListOf<Request>()
         var fixedRequest: Request? = null
         var extractedResult: String? = null
+        /** Reference to a delayed job used to wait for cookie rotation/stability before closing. */
+        var stabilityJob: kotlinx.coroutines.Job? = null
 
-        withContext(Dispatchers.Main) {
-            val webView = WebView(context)
-            
-            fun destroyWebView() {
-                webView.stopLoading()
-                webView.destroy()
-            }
-
-            webView.settings.apply {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                databaseEnabled = true
-                useWideViewPort = true
-                loadWithOverviewMode = true
-                if (userAgent != null) {
-                    userAgentString = userAgent
+        class MyJavaScriptInterface {
+            @JavascriptInterface
+            fun onElementFound(html: String) {
+                if (html.isNotEmpty()) {
+                    extractedResult = html
+                    deferredResponse.complete(extractedResult to extraRequestList)
                 }
             }
+        }
+
+        withContext(Dispatchers.Main) {
+            val webView = WebView(context).apply {
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    databaseEnabled = true
+                    useWideViewPort = true
+                    loadWithOverviewMode = true
+                    if (userAgent != null) {
+                        userAgentString = userAgent
+                    }
+                }
+                addJavascriptInterface(MyJavaScriptInterface(), "NativeAndroid")
+            }
+
+            fun destroyWebView() {
+                CoroutineScope(Dispatchers.Main).launch {
+                    stabilityJob?.cancel()
+                    webView.stopLoading()
+                    webView.destroy()
+                }
+            }
+
 
             webViewUserAgent = webView.settings.userAgentString
             CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
-            class MyJavaScriptInterface {
-                @JavascriptInterface
-                fun onElementFound(html: String) {
-                    if (html.isNotEmpty()) {
-                        extractedResult = html
-                        deferredResponse.complete(extractedResult to extraRequestList)
-                    }
-                }
-            }
-            webView.addJavascriptInterface(MyJavaScriptInterface(), "NativeAndroid")
 
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(
@@ -145,51 +165,66 @@ class WebViewResolver @Inject constructor(
                 ): WebResourceResponse? {
                     val webViewUrl = request.url.toString()
                     if (isBlockedTrackerUrl(webViewUrl)) {
-                        return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
+                        return WebResourceResponse(
+                            "text/plain",
+                            "utf-8",
+                            ByteArrayInputStream(ByteArray(0))
+                        )
                     }
 
+                    val req = request.toRequest()
+
+                    if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
+                        capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
+                    }
+
+                    // Check if this request matches our target URL
                     if (interceptUrl?.containsMatchIn(webViewUrl) == true) {
-                        fixedRequest = request.toRequest().also { requestCallBack(it) }
-                        val host = runCatching { URI(webViewUrl).host }.getOrNull() ?: ""
-                        if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
-                            capturedHeaders[host] = request.requestHeaders
-                        }
+                        fixedRequest = req
+                        deferredResponse.complete(req to extraRequestList)
                         return null
                     }
 
+                    // Track additional interesting URLs
                     if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
-                        val req = request.toRequest()
                         extraRequestList.add(req)
-                        val host = runCatching { URI(webViewUrl).host }.getOrNull() ?: ""
-                        if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
-                            capturedHeaders[host] = request.requestHeaders
-                        }
+                        // If callback returns true (e.g., "I found what I wanted"), signal completion
                         if (requestCallBack(req)) {
                             deferredResponse.complete(fixedRequest to extraRequestList)
                         }
                     }
 
-                    return super.shouldInterceptRequest(view, request)
+                    val path = runCatching { URI(webViewUrl).path }.getOrNull() ?: ""
+                    val extension = path.substringAfterLast('.', "").lowercase()
+                    // Optionally route WebView requests through OkHttp to sync cookies/state
+                    return try {
+                        when {
+                            blacklistedExtensions.contains(extension) ||
+                            webViewUrl.endsWith("/favicon.ico") ||
+                            webViewUrl.startsWith("wss://") -> WebResourceResponse("image/png", null, null)
+                            webViewUrl.contains("recaptcha") ||
+                            webViewUrl.contains("/cdn-cgi/") -> super.shouldInterceptRequest(view, request)
+                            else -> super.shouldInterceptRequest(view, request)
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
 
                 override fun onPageFinished(view: WebView?, finishUrl: String?) {
                     super.onPageFinished(view, finishUrl)
                     if (finishUrl == null) return
 
-                    val isChallengeSolved = CookiesUtils.getAllCookiesForUrl(finishUrl).containsKey("cf_clearance")
-
-                    if (isChallengeSolved) {
-                        CookieManager.getInstance().flush()
+                    if (requestCallBack(requestCreator("GET", finishUrl))) {
                         if (scriptToFinish == null) {
-                            @OptIn(DelicateCoroutinesApi::class)
-                            GlobalScope.launch(Dispatchers.Main) {
-                                delay(2.seconds)
-                                if (requestCallBack(Request.Builder().url(finishUrl).build())) {
-                                    deferredResponse.complete(fixedRequest to extraRequestList)
-                                }
+                            stabilityJob?.cancel()
+                            stabilityJob = CoroutineScope(Dispatchers.Main).launch {
+                                delay(5.seconds)
+                                deferredResponse.complete(fixedRequest to extraRequestList)
                             }
                         }
                     }
+
 
                     val script = scriptToFinish ?: """
                         (function() {
@@ -217,11 +252,12 @@ class WebViewResolver @Inject constructor(
                             tryClick();
                         })();
                     """.trimIndent()
+
                     view?.evaluateJavascript(script, null)
                 }
             }
             webView.loadUrl(url, headers.toMap())
-            
+
             deferredResponse.invokeOnCompletion { destroyWebView() }
         }
 
@@ -232,21 +268,9 @@ class WebViewResolver @Inject constructor(
 }
 
 fun WebResourceRequest.toRequest(): Request {
-    val method = this.method
-    val body = if (method == "POST" || method == "PUT" || method == "PATCH") {
-        "".toRequestBody()
-    } else {
-        null
-    }
-    return Request.Builder()
-        .url(this.url.toString())
-        .method(method, body)
-        .headers(this.requestHeaders.toHeaders())
-        .build()
-}
-
-fun Map<String, String>.toHeaders(): okhttp3.Headers {
-    val builder = okhttp3.Headers.Builder()
-    this.forEach { (k, v) -> builder.add(k, v) }
-    return builder.build()
+    return requestCreator(
+        this.method,
+        this.url.toString(),
+        this.requestHeaders,
+    )
 }

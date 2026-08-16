@@ -33,7 +33,7 @@ import com.example.talkmy.ui.components.TopBar
 import com.example.talkmy.ui.core.ObserveEffect
 import com.example.talkmy.ui.theme.TalkMyTheme
 import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun EditTaskScreen(
@@ -64,7 +64,7 @@ fun EditTaskScreen(
     LaunchedEffect(textFieldState.text) {
         val currentText = textFieldState.text.toString()
         if (currentText != state.currentTextOnTextField) {
-            delay(500.milliseconds)
+            delay(1.seconds)
             viewModel.onAction(EditTaskAction.UpdateNoteText(currentText))
         }
     }
@@ -75,45 +75,6 @@ fun EditTaskScreen(
             EditTaskEffect.NavigateBack -> onBackClick()
             is EditTaskEffect.ShowMessage -> {
                 // TODO: Toast
-            }
-        }
-    }
-
-    state.activeDialog?.let { dialog ->
-        when (dialog) {
-            is EditTaskDialog.Url -> {
-                InputDialog(
-                    title = stringResource(R.string.dialog_url_title),
-                    placeholder = stringResource(R.string.dialog_url_placeholder),
-                    confirmText = stringResource(R.string.dialog_url_confirm),
-                    onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) },
-                    onConfirm = { url ->
-                        viewModel.onAction(EditTaskAction.FetchTextFromUrl(url))
-                        viewModel.onAction(EditTaskAction.DismissDialog)
-                    })
-            }
-
-            is EditTaskDialog.TextOptions -> {
-                TextOptionsDialog(
-                    initialTextSize = currentTextSize,
-                    onSizeChange = { },
-                    onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) },
-                    onApply = { newSize ->
-                        viewModel.onAction(
-                            EditTaskAction.UpdatePreference(
-                                UserPreference.TextSize(
-                                    newSize
-                                )
-                            )
-                        )
-                        viewModel.onAction(EditTaskAction.DismissDialog)
-                    })
-            }
-
-            is EditTaskDialog.VoicePreferences -> {
-                VoiceOptionsDialog(preferences = state.preferences, onPreferenceChange = { pref ->
-                    viewModel.onAction(EditTaskAction.UpdatePreference(pref))
-                }, onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) })
             }
         }
     }
@@ -133,6 +94,7 @@ fun EditTaskScreen(
                     }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_baseline_link),
+                            modifier = Modifier.width(30.dp),
                             contentDescription = stringResource(R.string.paste_link),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -213,7 +175,8 @@ fun EditTaskScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                             alpha = 0.5f
                                         ),
-                                        fontSize = currentTextSize.sp
+                                        fontSize = currentTextSize.sp,
+                                        lineHeight = currentTextSize.sp
                                     )
                                 }
                                 innerTextField()
@@ -264,6 +227,46 @@ fun EditTaskScreen(
             }
         }
     }
+
+    state.activeDialog?.let { dialog ->
+        when (dialog) {
+            is EditTaskDialog.Url -> {
+                InputDialog(
+                    title = stringResource(R.string.dialog_url_title),
+                    placeholder = stringResource(R.string.dialog_url_placeholder),
+                    confirmText = stringResource(R.string.dialog_url_confirm),
+                    onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) },
+                    onConfirm = { url ->
+                        viewModel.onAction(EditTaskAction.FetchTextFromUrl(url))
+                        viewModel.onAction(EditTaskAction.DismissDialog)
+                    })
+            }
+
+            is EditTaskDialog.TextOptions -> {
+                TextOptionsDialog(
+                    initialTextSize = currentTextSize,
+                    onSizeChange = { },
+                    onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) },
+                    onApply = { newSize ->
+                        viewModel.onAction(
+                            EditTaskAction.UpdatePreference(
+                                UserPreference.TextSize(
+                                    newSize
+                                )
+                            )
+                        )
+                        viewModel.onAction(EditTaskAction.DismissDialog)
+                    })
+            }
+
+            is EditTaskDialog.VoicePreferences -> {
+                VoiceOptionsDialog(preferences = state.preferences, onPreferenceChange = { pref ->
+                    viewModel.onAction(EditTaskAction.UpdatePreference(pref))
+                }, onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) })
+            }
+        }
+    }
+
 }
 
 @Preview(showBackground = true)

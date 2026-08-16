@@ -3,16 +3,28 @@ package com.example.talkmy.data.source.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.talkmy.domain.models.PreferenceData
-import com.example.talkmy.domain.repositories.PreferenceStore
+import com.example.talkmy.domain.interfaces.PreferenceStore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 
-class AndroidPreferenceStore(
+class PreferenceStoreImp(
     context: Context,
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("talkmy_prefs", Context.MODE_PRIVATE),
 ) : PreferenceStore {
 
     private val keyFlow = sharedPreferences.keyFlow
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> get(key: String, defaultValue: T): PreferenceData<T> {
+        return when (defaultValue) {
+            is String -> getString(key, defaultValue) as PreferenceData<T>
+            is Int -> getInt(key, defaultValue) as PreferenceData<T>
+            is Boolean -> getBoolean(key, defaultValue) as PreferenceData<T>
+            is Float -> getFloat(key, defaultValue) as PreferenceData<T>
+            is Long -> getLong(key, defaultValue) as PreferenceData<T>
+            else -> throw IllegalArgumentException("Unsupported type for preference: ${defaultValue!!::class.simpleName}")
+        }
+    }
 
     override fun getString(key: String, defaultValue: String): PreferenceData<String> {
         return AndroidPreference.StringPrimitive(sharedPreferences, keyFlow, key, defaultValue)

@@ -37,7 +37,7 @@ fun TaskCard(
     date: String,
     onCardClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     OutlinedCard(
         modifier = modifier
@@ -48,11 +48,11 @@ fun TaskCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.surface
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-
         Box(modifier = Modifier.fillMaxSize()) {
+            // Full card clickable area
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -87,33 +87,32 @@ fun TaskCard(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
+                
                 Column(
                     modifier = Modifier
                         .weight(0.15f)
                         .fillMaxHeight(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(60.dp)
-                                .padding(1.dp),
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .padding(1.dp),
+                    ) {
+                        IconButton(
+                            onClick = onDeleteClick,
+                            modifier = Modifier.fillMaxSize(),
                         ) {
-                            IconButton(
-                                onClick = { onDeleteClick() },
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = stringResource(R.string.delete_note),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.delete_note),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
                         }
+                    }
 
-
-                    // Fecha en la parte inferior
+                    // Date at bottom end
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -129,7 +128,6 @@ fun TaskCard(
                 }
             }
         }
-
     }
 }
 
@@ -138,8 +136,8 @@ fun TaskCard(
 fun TaskCardPreview() {
     TalkMyTheme {
         TaskCard(
-            title = "Mi Tarea Importante",
-            description = "Esta es una descripción larga para probar cómo se comporta el texto cuando tiene varias líneas y debe cortarse con puntos suspensivos.",
+            title = "My Important Task",
+            description = "This is a long description to test how text behaves with multiple lines...",
             date = "3h",
             onCardClick = {},
             onDeleteClick = {}

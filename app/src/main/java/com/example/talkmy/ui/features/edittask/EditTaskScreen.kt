@@ -25,7 +25,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talkmy.R
 import com.example.talkmy.core.ResponseState
+import com.example.talkmy.domain.models.UserPreference
 import com.example.talkmy.ui.components.InputDialog
+import com.example.talkmy.ui.features.edittask.components.TextOptionsDialog
+import com.example.talkmy.ui.features.edittask.components.VoiceOptionsDialog
 import com.example.talkmy.ui.components.TopBar
 import com.example.talkmy.ui.core.ObserveEffect
 import com.example.talkmy.ui.theme.TalkMyTheme
@@ -34,15 +37,17 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun EditTaskScreen(
-    taskId: Int? = null,
-    onBackClick: () -> Unit,
-    viewModel: EditTaskViewModel = hiltViewModel()
+    taskId: Int? = null, onBackClick: () -> Unit, viewModel: EditTaskViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val textFieldState = rememberTextFieldState(state.currentTextOnTextField)
+
     var mainMenuExpanded by remember { mutableStateOf(false) }
     var voiceMenuExpanded by remember { mutableStateOf(false) }
-    var showUrlDialog by remember { mutableStateOf(false) }
-    val textFieldState = rememberTextFieldState(state.currentTextOnTextField)
+
+    val currentTextSize =
+        (state.preferences[UserPreference.TextSize::class] as? UserPreference.TextSize)?.value
+            ?: 20.0f
 
     LaunchedEffect(taskId) {
         viewModel.onAction(EditTaskAction.LoadTask(taskId?.toString()))
@@ -74,34 +79,65 @@ fun EditTaskScreen(
         }
     }
 
-    if (showUrlDialog) {
-        InputDialog(
-            title = stringResource(R.string.dialog_url_title),
-            placeholder = stringResource(R.string.dialog_url_placeholder),
-            confirmText = stringResource(R.string.dialog_url_confirm),
-            onDismiss = { showUrlDialog = false },
-            onConfirm = { url ->
-                viewModel.onAction(EditTaskAction.FetchTextFromUrl(url))
-                showUrlDialog = false
+    state.activeDialog?.let { dialog ->
+        when (dialog) {
+            is EditTaskDialog.Url -> {
+                InputDialog(
+                    title = stringResource(R.string.dialog_url_title),
+                    placeholder = stringResource(R.string.dialog_url_placeholder),
+                    confirmText = stringResource(R.string.dialog_url_confirm),
+                    onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) },
+                    onConfirm = { url ->
+                        viewModel.onAction(EditTaskAction.FetchTextFromUrl(url))
+                        viewModel.onAction(EditTaskAction.DismissDialog)
+                    })
             }
-        )
+
+            is EditTaskDialog.TextOptions -> {
+                TextOptionsDialog(
+                    initialTextSize = currentTextSize,
+                    onSizeChange = { },
+                    onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) },
+                    onApply = { newSize ->
+                        viewModel.onAction(
+                            EditTaskAction.UpdatePreference(
+                                UserPreference.TextSize(
+                                    newSize
+                                )
+                            )
+                        )
+                        viewModel.onAction(EditTaskAction.DismissDialog)
+                    })
+            }
+
+            is EditTaskDialog.VoicePreferences -> {
+                VoiceOptionsDialog(preferences = state.preferences, onPreferenceChange = { pref ->
+                    viewModel.onAction(EditTaskAction.UpdatePreference(pref))
+                }, onDismiss = { viewModel.onAction(EditTaskAction.DismissDialog) })
+            }
+        }
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
+        modifier = Modifier.fillMaxSize(), topBar = {
             TopBar(
-                title = if (taskId == null) stringResource(R.string.create_note) else stringResource(R.string.edit_note),
-                onBackClick = onBackClick,
-                actions = {
-                    IconButton(onClick = { showUrlDialog = true }) {
+                title = if (taskId == null) stringResource(R.string.create_note) else stringResource(
+                    R.string.edit_note
+                ), onBackClick = onBackClick, actions = {
+                    IconButton(onClick = {
+                        viewModel.onAction(
+                            EditTaskAction.ShowDialog(
+                                EditTaskDialog.Url
+                            )
+                        )
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_baseline_link),
                             contentDescription = stringResource(R.string.paste_link),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         viewModel.onAction(EditTaskAction.SaveTask(textFieldState.text.toString()))
                     }) {
                         Icon(
@@ -119,37 +155,32 @@ fun EditTaskScreen(
                     }
                     DropdownMenu(
                         expanded = mainMenuExpanded,
-                        onDismissRequest = { mainMenuExpanded = false }
-                    ) {
+                        onDismissRequest = { mainMenuExpanded = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_text)) },
-                            onClick = { mainMenuExpanded = false }
-                        )
+                            onClick = {
+                                mainMenuExpanded = false
+                                viewModel.onAction(EditTaskAction.ShowDialog(EditTaskDialog.TextOptions))
+                            })
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_voice_options)) },
                             onClick = {
                                 mainMenuExpanded = false
-                                voiceMenuExpanded = true
-                            }
-                        )
+                                viewModel.onAction(EditTaskAction.ShowDialog(EditTaskDialog.VoicePreferences))
+                            })
                     }
                     DropdownMenu(
                         expanded = voiceMenuExpanded,
-                        onDismissRequest = { voiceMenuExpanded = false }
-                    ) {
+                        onDismissRequest = { voiceMenuExpanded = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_voice_settings)) },
-                            onClick = { voiceMenuExpanded = false }
-                        )
+                            onClick = { voiceMenuExpanded = false })
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_voice_selector)) },
-                            onClick = { voiceMenuExpanded = false }
-                        )
+                            onClick = { voiceMenuExpanded = false })
                     }
-                }
-            )
-        }
-    ) { innerPadding ->
+                })
+        }) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -167,29 +198,31 @@ fun EditTaskScreen(
                         .verticalScroll(rememberScrollState()),
                     textStyle = TextStyle(
                         color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 18.sp
+                        fontSize = currentTextSize.sp
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     decorator = { innerTextField ->
                         Column(modifier = Modifier.fillMaxWidth()) {
                             // Top breathing room
                             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
-                            
+
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 if (textFieldState.text.isEmpty()) {
                                     Text(
                                         text = stringResource(R.string.write_note_placeholder),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.5f
+                                        ),
+                                        fontSize = currentTextSize.sp
                                     )
                                 }
                                 innerTextField()
                             }
-                            
+
                             // Bottom breathing room
                             Spacer(modifier = Modifier.height(140.dp))
                         }
-                    }
-                )
+                    })
             }
 
             if (state.contentLoadingStatus is ResponseState.Loading) {
@@ -204,8 +237,7 @@ fun EditTaskScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Slider(
                     value = state.progress,
@@ -223,7 +255,9 @@ fun EditTaskScreen(
                 ) {
                     Icon(
                         imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (state.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
+                        contentDescription = if (state.isPlaying) stringResource(R.string.pause) else stringResource(
+                            R.string.play
+                        ),
                         modifier = Modifier.size(40.dp)
                     )
                 }

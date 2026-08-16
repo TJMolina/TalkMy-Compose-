@@ -18,7 +18,6 @@ fun Long.toRelativeTime(): String {
         seconds < 60 -> "${seconds}s"
         minutes < 60 -> "${minutes}m"
         hours < 24 -> "${hours}h"
-        days == 1L -> "yesterday"
         else -> "${days}d"
     }
 }

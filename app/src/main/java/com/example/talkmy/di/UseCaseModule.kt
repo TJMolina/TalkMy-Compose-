@@ -38,12 +38,16 @@ object UseCaseModule {
     fun provideEditTaskScreenTasksUseCases(
         getTask: GetTask,
         uploadTask: UploadTask,
-        getTextFromUrl: GetTextFromUrl
+        getTextFromUrl: GetTextFromUrl,
+        getPreferences: com.example.talkmy.domain.usecases.preferences.GetPreferences,
+        savePreference: com.example.talkmy.domain.usecases.preferences.SavePreference
     ): EditTaskScreenTasksUseCases {
         return EditTaskScreenTasksUseCases(
             getTask = getTask,
             uploadTask = uploadTask,
-            getTextFromUrl = getTextFromUrl
+            getTextFromUrl = getTextFromUrl,
+            getPreferences = getPreferences,
+            savePreference = savePreference
         )
     }
 }

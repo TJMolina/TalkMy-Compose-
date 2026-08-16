@@ -128,7 +128,8 @@ internal fun PreferenceItem(
                 item.content(item)
             }
 
-            else -> {}
+            is Preference.PreferenceItem.EditTextPreference -> TODO()
+            is Preference.PreferenceItem.SliderPreference -> TODO()
         }
     }
 }

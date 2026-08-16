@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talkmy.R
 import com.example.talkmy.core.extensions.toRelativeTime
+import com.example.talkmy.domain.models.Task
+import com.example.talkmy.ui.components.ConfirmDialog
 import com.example.talkmy.ui.components.TopBar
 import com.example.talkmy.ui.features.mainscreen.components.FloatingButton
 import com.example.talkmy.ui.features.mainscreen.components.TaskCard
@@ -28,6 +30,10 @@ fun MainScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var menuExpanded by remember { mutableStateOf(false) }
+    
+    // Dialog States
+    var taskToDelete by remember { mutableStateOf<Task?>(null) }
+    var showClearAllDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -48,7 +54,7 @@ fun MainScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.clear_all)) },
                             onClick = { 
-                                viewModel.onAction(MainAction.ClearAll)
+                                showClearAllDialog = true
                                 menuExpanded = false 
                             }
                         )
@@ -61,9 +67,35 @@ fun MainScreen(
         MainScreenContent(
             state = state,
             onEditTask = onEditTask,
-            onDeleteTask = { viewModel.onAction(MainAction.DeleteTask(it)) },
+            onDeleteTask = { taskToDelete = it },
             modifier = Modifier.padding(innerPadding.plus(PaddingValues(vertical = 2.dp)))
         )
+
+        // Clear All Confirmation Dialog
+        if (showClearAllDialog) {
+            ConfirmDialog(
+                title = stringResource(R.string.clear_all),
+                description = stringResource(R.string.clear_all_confirmation),
+                onDismiss = { showClearAllDialog = false },
+                onConfirm = {
+                    viewModel.onAction(MainAction.ClearAll)
+                    showClearAllDialog = false
+                }
+            )
+        }
+
+        // Single Task Deletion Dialog
+        taskToDelete?.let { task ->
+            ConfirmDialog(
+                title = stringResource(R.string.delete_note),
+                description = stringResource(R.string.delete_note_confirmation),
+                onDismiss = { taskToDelete = null },
+                onConfirm = {
+                    viewModel.onAction(MainAction.DeleteTask(task.id))
+                    taskToDelete = null
+                }
+            )
+        }
     }
 }
 
@@ -71,7 +103,7 @@ fun MainScreen(
 fun MainScreenContent(
     state: MainState,
     onEditTask: (Int) -> Unit,
-    onDeleteTask: (Int) -> Unit,
+    onDeleteTask: (Task) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(modifier = modifier) {
@@ -83,7 +115,7 @@ fun MainScreenContent(
                 description = task.note.take(500),
                 date = dateString,
                 onCardClick = { onEditTask(task.id) },
-                onDeleteClick = { onDeleteTask(task.id) }
+                onDeleteClick = { onDeleteTask(task) }
             )
         }
     }

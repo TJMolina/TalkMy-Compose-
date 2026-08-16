@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.talkmy.R
-import com.example.talkmy.ui.features.mainscreen.components.TaskCard
 import com.example.talkmy.ui.theme.TalkMyTheme
 
 @Composable
@@ -82,8 +81,6 @@ fun InputDialogContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             // Title
             Text(
                 text = title,
@@ -93,8 +90,6 @@ fun InputDialogContent(
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Input Field
             TextField(
@@ -132,9 +127,9 @@ fun InputDialogPreview() {
     TalkMyTheme {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             InputDialogContent(
-                title = "Enter URL",
-                placeholder = "https://example.com",
-                confirmText = "Get Text",
+                title = stringResource(R.string.dialog_url_title),
+                placeholder = stringResource(R.string.dialog_url_placeholder),
+                confirmText = stringResource(R.string.dialog_url_confirm),
                 onDismiss = {},
                 onConfirm = {}
             )
